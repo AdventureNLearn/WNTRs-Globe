@@ -7,8 +7,11 @@
   const POSTS_URL = "./data/posts.json";
   const TERRAIN_MIN_ZOOM = 11;
   const GLOBE_VIEW = { center: [-32, 36], zoom: 1.65, pitch: 8, bearing: 0 };
-  const MONTH_START = { y: 2026, m: 5 }; // June 2026 (0-based month later)
+  const MONTH_START = { y: 2026, m: 5 }; // June 2026 — posts stay in this window
   const MONTH_END = { y: 2026, m: 10 }; // November 2026
+  const CLUSTER_MAX_ZOOM = 6;
+  const AREA_MIN_ZOOM = 7;
+  const RECORD_BADGE = "Official-record cases: areas shown as recorded";
 
   const LAYERS = [
     { id: "sightings", name: "Sightings", color: "#3ec6d8", on: true },
@@ -45,14 +48,23 @@
     posts: [],
     dataStatus: "EXAMPLE_PLACEHOLDER",
     year: 2026,
-    month: 9, // October
+    month: 9, // October — posts stay monthly even in All years
     day: 15,
+    allYears: true,
+    showExplained: true,
+    caseYearMin: 1940,
+    caseYearMax: 2026,
     activeLook: "night",
     orbitsOn: false,
     feedOn: true,
     terrainOn: false,
     markers: [],
-    selectedCaseId: null
+    selectedCaseId: null,
+    periodToken: 0,
+    periodReady: Promise.resolve(),
+    periodLabel: "",
+    periodChoice: null,
+    olderMapOn: false
   };
 
   const $ = (id) => document.getElementById(id);
@@ -144,6 +156,13 @@
         lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length
       };
     }
+    const refs = (c.reference_points || []).filter((rp) => typeof rp.lat === "number" && typeof rp.lon === "number");
+    if (refs.length) {
+      return {
+        lon: refs.reduce((s, p) => s + p.lon, 0) / refs.length,
+        lat: refs.reduce((s, p) => s + p.lat, 0) / refs.length
+      };
+    }
     return null;
   }
 
@@ -160,6 +179,9 @@
     }
     if (a.kind === "path" && Array.isArray(a.coordinates)) {
       return { type: "LineString", coordinates: a.coordinates };
+    }
+    if (a.kind === "point" && typeof a.lon === "number" && typeof a.lat === "number") {
+      return { type: "Point", coordinates: [a.lon, a.lat] };
     }
     return null;
   }
@@ -183,6 +205,53 @@
     }).filter(Boolean);
   }
 
+  function isFeedCase(c) {
+    return c.map_kind === "feed";
+  }
+
+  function caseInDateWindow(c) {
+    if (state.allYears) return true;
+    const y = c.incident_year;
+    if (!y) return false;
+    const yEnd = c.incident_year_end || y;
+    if (state.year < y || state.year > yEnd) return false;
+    const prec = c.incident_date_precision;
+    if (prec === "year" || prec === "range" || !c.incident_month) return true;
+    return c.incident_month === state.month + 1;
+  }
+
+  function isExplainedResolved(c) {
+    return c.official_status_kind === "explained_resolved";
+  }
+
+  function casePassesStatusFilter(c) {
+    return state.showExplained || !isExplainedResolved(c);
+  }
+
+  function casesOnGlobe() {
+    return state.cases.filter((c) => !isFeedCase(c) && caseInDateWindow(c) && casePassesStatusFilter(c) && locatorCenter(c));
+  }
+
+  function officialFeedCases() {
+    return state.cases.filter((c) => {
+      if (!isFeedCase(c)) return false;
+      if (!casePassesStatusFilter(c)) return false;
+      if (c.feed_reason === "unknown date" || !c.incident_year) return true;
+      return caseInDateWindow(c);
+    });
+  }
+
+  function setCaseYearBounds(cases) {
+    const years = cases.map((c) => c.incident_year).filter(Boolean);
+    const ends = cases.map((c) => c.incident_year_end).filter(Boolean);
+    state.caseYearMin = 1940;
+    state.caseYearMax = 2026;
+    if (years.length) {
+      state.caseYearMin = Math.min(state.caseYearMin, ...years);
+      state.caseYearMax = Math.max(state.caseYearMax, ...years, ...ends);
+    }
+  }
+
   async function loadJson(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`);
@@ -197,16 +266,24 @@
     return reduceMotion() ? 0 : ms;
   }
 
-  function waitForIdle(map) {
+  function waitForIdle(map, timeoutMs = 12000) {
     return new Promise((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(done, timeoutMs);
       if (!map.isMoving() && !map.isEasing() && map.areTilesLoaded()) {
         // One more frame so late paint can settle.
-        map.once("idle", () => resolve());
+        map.once("idle", done);
         // If already idle, the event may not fire again; resolve shortly.
-        setTimeout(resolve, 50);
+        setTimeout(done, 50);
         return;
       }
-      map.once("idle", resolve);
+      map.once("idle", done);
     });
   }
 
@@ -246,12 +323,34 @@
 
   function renderFeed() {
     const list = $("feed-list");
+    const lead = $("feed-panel") && $("feed-panel").querySelector(".panel-lead");
+    if (lead) {
+      lead.textContent = "Official-record cases with an [UNKNOWN] location or date stay here, along with posts that have no place pin.";
+    }
+    const official = officialFeedCases();
     const items = postsInView().filter((p) => p.located === false);
-    if (!items.length) {
-      list.innerHTML = `<p class="panel-lead">No unlocated posts in this month for the layers that are on.</p>`;
+    if (!official.length && !items.length) {
+      list.innerHTML = `<p class="panel-lead">No official-record cases or unlocated posts in this window for the layers that are on.</p>`;
       return;
     }
-    list.innerHTML = items.map((p) => {
+    const officialHtml = official.map((c) => {
+      const date = c.date_as_printed || "[UNKNOWN]";
+      const reason = c.feed_reason === "unknown date"
+        ? "Date [UNKNOWN] — not on the map"
+        : c.feed_reason === "unknown location"
+          ? "Location [UNKNOWN] — not on the map"
+          : "Not on the map";
+      const first = Array.isArray(c.sources) && c.sources[0];
+      const source = first && first.url
+        ? `<a href="${escapeHtml(first.url)}" target="_blank" rel="noopener">${escapeHtml(first.label || "Source")}</a>`
+        : "";
+      return `<article class="feed-card is-official" data-feed-case="${escapeHtml(c.id)}">
+        <p class="feed-date">${escapeHtml(date)}</p>
+        <p class="feed-excerpt">${escapeHtml(c.title || "[UNKNOWN]")}</p>
+        <p class="feed-source">${escapeHtml(reason)}${source ? " · " + source : ""}</p>
+      </article>`;
+    }).join("");
+    const postsHtml = items.map((p) => {
       const dim = parseEtDate(p.date_et)?.day !== state.day;
       const example = p.import_ok === false || state.dataStatus === "EXAMPLE_PLACEHOLDER";
       const source = p.source_url
@@ -263,6 +362,14 @@
         <p class="feed-source">${source}</p>
       </article>`;
     }).join("");
+    list.innerHTML = officialHtml + postsHtml;
+    list.querySelectorAll("[data-feed-case]").forEach((el) => {
+      el.style.cursor = "pointer";
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("a")) return;
+        openCase(el.dataset.feedCase);
+      });
+    });
   }
 
   function escapeHtml(s) {
@@ -288,9 +395,16 @@
     if (state.day > max) state.day = max;
     slider.max = String(max);
     slider.value = String(state.day);
-    const label = monthName(state.year, state.month);
+    const label = state.allYears ? "All years" : monthName(state.year, state.month);
     $("month-label").textContent = label;
     $("slider-month").textContent = label;
+    const postsLabel = $("posts-label");
+    if (postsLabel) postsLabel.textContent = `Posts: ${monthName(state.year, state.month)}`;
+    const allBtn = $("btn-all-years");
+    if (allBtn) {
+      allBtn.classList.toggle("is-on", state.allYears);
+      allBtn.setAttribute("aria-pressed", state.allYears ? "true" : "false");
+    }
     const marks = daysWithPosts();
     const ticks = $("slider-ticks");
     ticks.innerHTML = "";
@@ -303,20 +417,45 @@
     renderFeed();
   }
 
+  function clampCaseWindow(y, m) {
+    if (y < state.caseYearMin) return null;
+    if (y > state.caseYearMax) return null;
+    if (y === state.caseYearMax && m > MONTH_END.m) return null;
+    return { y, m };
+  }
+
   function shiftMonth(delta) {
+    state.allYears = false;
     let y = state.year;
     let m = state.month + delta;
     if (m < 0) { m = 11; y -= 1; }
     if (m > 11) { m = 0; y += 1; }
-    const start = MONTH_START.y * 12 + MONTH_START.m;
-    const end = MONTH_END.y * 12 + MONTH_END.m;
-    const next = y * 12 + m;
-    if (next < start || next > end) return;
-    state.year = y;
-    state.month = m;
-    const max = daysInMonth(y, m);
+    const next = clampCaseWindow(y, m);
+    if (!next) return;
+    state.year = next.y;
+    state.month = next.m;
+    const max = daysInMonth(next.y, next.m);
     if (state.day > max) state.day = max;
     renderSlider();
+    if (state.map && state.map.isStyleLoaded && state.map.isStyleLoaded()) addCaseLayers();
+  }
+
+  function shiftYear(delta) {
+    state.allYears = false;
+    const next = clampCaseWindow(state.year + delta, state.month);
+    if (!next) return;
+    state.year = next.y;
+    state.month = next.m;
+    const max = daysInMonth(next.y, next.m);
+    if (state.day > max) state.day = max;
+    renderSlider();
+    if (state.map && state.map.isStyleLoaded && state.map.isStyleLoaded()) addCaseLayers();
+  }
+
+  function setAllYears() {
+    state.allYears = true;
+    renderSlider();
+    if (state.map && state.map.isStyleLoaded && state.map.isStyleLoaded()) addCaseLayers();
   }
 
   function setDataBanner() {
@@ -326,7 +465,10 @@
       el.textContent = "EXAMPLE data — not real cases";
       return;
     }
-    el.textContent = "Sample set: named site areas, not event fixes";
+    const onMap = state.cases.filter((c) => !isFeedCase(c)).length;
+    const feedN = state.cases.filter(isFeedCase).length;
+    const postsN = state.posts.length;
+    el.textContent = `${RECORD_BADGE} · ${onMap} on the map, ${feedN} in the feed · ${postsN} post${postsN === 1 ? "" : "s"}`;
     el.style.background = "rgba(62, 198, 216, 0.14)";
     el.style.borderColor = "rgba(62, 198, 216, 0.4)";
     el.style.color = "#b9eef5";
@@ -376,10 +518,25 @@
     }
   }
 
+  function locatorFeatureCollection(cases) {
+    const features = cases.map((c) => {
+      const loc = locatorCenter(c);
+      if (!loc) return null;
+      return {
+        type: "Feature",
+        properties: { id: c.id, title: c.title || "", map_kind: c.map_kind || "" },
+        geometry: { type: "Point", coordinates: [loc.lon, loc.lat] }
+      };
+    }).filter(Boolean);
+    return { type: "FeatureCollection", features };
+  }
+
   function addCaseLayers() {
     const map = state.map;
-    const features = state.cases.flatMap(featuresForCase);
-    const sourceData = { type: "FeatureCollection", features };
+    if (!map) return;
+    const visible = casesOnGlobe();
+    const sourceData = { type: "FeatureCollection", features: visible.flatMap(featuresForCase) };
+    const locatorData = locatorFeatureCollection(visible);
 
     if (map.getSource("cases")) {
       map.getSource("cases").setData(sourceData);
@@ -389,6 +546,7 @@
         id: "case-fill",
         type: "fill",
         source: "cases",
+        minzoom: AREA_MIN_ZOOM,
         filter: ["in", ["geometry-type"], ["literal", ["Polygon", "MultiPolygon"]]],
         paint: {
           "fill-color": "#7ad4ea",
@@ -399,6 +557,7 @@
         id: "case-line",
         type: "line",
         source: "cases",
+        minzoom: AREA_MIN_ZOOM,
         filter: ["in", ["geometry-type"], ["literal", ["Polygon", "MultiPolygon", "LineString"]]],
         paint: {
           "line-color": "#d7ecff",
@@ -406,18 +565,91 @@
           "line-opacity": 0.95
         }
       });
+      map.addLayer({
+        id: "case-points",
+        type: "circle",
+        source: "cases",
+        minzoom: 8,
+        filter: ["==", ["geometry-type"], "Point"],
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 5, 14, 8, 17, 6],
+          "circle-color": "#e8f6ff",
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#7ad4ea",
+          "circle-pitch-alignment": "map"
+        }
+      });
       map.on("click", "case-fill", (e) => {
+        const id = e.features && e.features[0] && e.features[0].properties.id;
+        if (id) openCase(id);
+      });
+      map.on("click", "case-points", (e) => {
         const id = e.features && e.features[0] && e.features[0].properties.id;
         if (id) openCase(id);
       });
       map.on("mouseenter", "case-fill", () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "case-fill", () => { map.getCanvas().style.cursor = ""; });
-      map.addSource("case-locators", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.on("mouseenter", "case-points", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "case-points", () => { map.getCanvas().style.cursor = ""; });
+    }
+
+    if (map.getSource("case-locators")) {
+      map.getSource("case-locators").setData(locatorData);
+    } else {
+      map.addSource("case-locators", {
+        type: "geojson",
+        data: locatorData,
+        cluster: true,
+        clusterMaxZoom: CLUSTER_MAX_ZOOM,
+        clusterRadius: 56
+      });
+      map.addLayer({
+        id: "case-clusters",
+        type: "circle",
+        source: "case-locators",
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": [
+            "step",
+            ["get", "point_count"],
+            "rgba(122, 212, 234, 0.85)",
+            10, "rgba(90, 190, 220, 0.9)",
+            30, "rgba(62, 198, 216, 0.95)"
+          ],
+          "circle-radius": [
+            "step",
+            ["get", "point_count"],
+            16,
+            10, 20,
+            30, 26
+          ],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#e8f6ff",
+          "circle-pitch-alignment": "map"
+        }
+      });
+      map.addLayer({
+        id: "case-cluster-count",
+        type: "symbol",
+        source: "case-locators",
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": ["get", "point_count_abbreviated"],
+          "text-size": 12,
+          "text-font": ["Noto Sans Regular"],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true
+        },
+        paint: {
+          "text-color": "#041018"
+        }
+      });
       map.addLayer({
         id: "case-locator-halo",
         type: "circle",
         source: "case-locators",
-        maxzoom: 10,
+        filter: ["!", ["has", "point_count"]],
+        maxzoom: 11,
         paint: {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 0, 16, 4, 12, 9, 8],
           "circle-color": "rgba(122, 212, 234, 0.3)",
@@ -429,7 +661,8 @@
         id: "case-locator-core",
         type: "circle",
         source: "case-locators",
-        maxzoom: 10,
+        filter: ["!", ["has", "point_count"]],
+        maxzoom: 11,
         paint: {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 0, 7, 4, 6, 9, 5],
           "circle-color": "#e8f6ff",
@@ -442,21 +675,34 @@
         id: "case-locator-label",
         type: "symbol",
         source: "case-locators",
-        maxzoom: 8,
+        filter: ["!", ["has", "point_count"]],
+        minzoom: 7,
+        maxzoom: 11,
         layout: {
           "text-field": ["get", "title"],
           "text-size": 11,
           "text-offset": [0, 1.15],
           "text-anchor": "top",
-          "text-font": ["Noto Sans Regular"],
-          "text-allow-overlap": true,
-          "text-ignore-placement": true
+          "text-font": ["Noto Sans Regular"]
         },
         paint: {
           "text-color": "#e8f6ff",
           "text-halo-color": "#070b14",
           "text-halo-width": 1.6
         }
+      });
+      map.on("click", "case-clusters", (e) => {
+        const feature = e.features && e.features[0];
+        if (!feature) return;
+        const clusterId = feature.properties.cluster_id;
+        map.getSource("case-locators").getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return;
+          map.easeTo({
+            center: feature.geometry.coordinates,
+            zoom,
+            duration: flyDuration(800)
+          });
+        });
       });
       map.on("click", "case-locator-core", (e) => {
         const id = e.features && e.features[0] && e.features[0].properties.id;
@@ -466,25 +712,21 @@
         const id = e.features && e.features[0] && e.features[0].properties.id;
         if (id) openCase(id);
       });
+      map.on("mouseenter", "case-clusters", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "case-clusters", () => { map.getCanvas().style.cursor = ""; });
       map.on("mouseenter", "case-locator-core", () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "case-locator-core", () => { map.getCanvas().style.cursor = ""; });
     }
-    const locatorFeatures = state.cases.map((c) => {
-      const loc = locatorCenter(c);
-      if (!loc) return null;
-      return {
-        type: "Feature",
-        properties: { id: c.id, title: c.title },
-        geometry: { type: "Point", coordinates: [loc.lon, loc.lat] }
-      };
-    }).filter(Boolean);
-    if (map.getSource("case-locators")) {
-      map.getSource("case-locators").setData({ type: "FeatureCollection", features: locatorFeatures });
-    }
 
+    buildCaseMarkers(visible);
+  }
+
+  function buildCaseMarkers(visible) {
+    const map = state.map;
     state.markers.forEach((m) => m.remove());
     state.markers = [];
-    state.cases.forEach((c) => {
+    if (!map || map.getZoom() < 8) return;
+    visible.forEach((c) => {
       const loc = locatorCenter(c);
       if (loc) {
         const prec = document.createElement("div");
@@ -522,7 +764,7 @@
 
         const lab = document.createElement("div");
         lab.className = "ref-label";
-        lab.textContent = rp.label || "Reference point, not an event fix";
+        lab.textContent = rp.label || "Reference point, not the object's position";
         const labMk = new maplibregl.Marker({ element: lab, anchor: "top", offset: [0, 8] })
           .setLngLat([rp.lon, rp.lat])
           .addTo(map);
@@ -530,10 +772,25 @@
         state.markers.push(labMk);
       });
     });
-    updateLabelVisibility();
+    applyMarkerVisibility();
   }
 
-  function updateLabelVisibility() {
+    function updateLabelVisibility() {
+    const z = state.map ? state.map.getZoom() : 0;
+    const needMarkers = z >= 8;
+    if (needMarkers && !state.markers.length && state.map && state.map.getSource("cases")) {
+      buildCaseMarkers(casesOnGlobe());
+      return;
+    }
+    if (!needMarkers && state.markers.length) {
+      state.markers.forEach((m) => m.remove());
+      state.markers = [];
+      return;
+    }
+    applyMarkerVisibility();
+  }
+
+  function applyMarkerVisibility() {
     const z = state.map ? state.map.getZoom() : 0;
     state.markers.forEach((m) => {
       const el = m.getElement();
@@ -600,17 +857,161 @@
     applyLook(state.activeLook);
     addBuildingsAndTerrain();
     addCaseLayers();
+    if (state.selectedCaseId) {
+      const c = state.cases.find((x) => x.id === state.selectedCaseId);
+      if (c) state.periodReady = applyPeriodGround(c);
+    }
+  }
+
+  function caseViewPoint(c) {
+    const sv = (c && c.street_view) || {};
+    if (typeof sv.lon === "number" && typeof sv.lat === "number") {
+      return { lon: sv.lon, lat: sv.lat };
+    }
+    return locatorCenter(c);
+  }
+
+  function syncOlderToggles(on, show, text) {
+    ["period-older-wrap", "case-older-wrap"].forEach((id) => {
+      const wrap = $(id);
+      if (wrap) wrap.hidden = !show;
+    });
+    ["toggle-older-map", "case-toggle-older-map"].forEach((id) => {
+      const input = $(id);
+      if (input) input.checked = !!on;
+    });
+    ["period-older-text", "case-older-text"].forEach((id) => {
+      const span = $(id);
+      if (span) span.textContent = text || "Show older map";
+    });
+  }
+
+  function setPeriodLabel(choice, olderOn) {
+    const showOlder = !!(choice && choice.showOlderToggle && olderOn);
+    const label = showOlder
+      ? (choice.olderLabel || choice.label)
+      : ((choice && choice.label) || "Modern ground: no period imagery available");
+    const note = (choice && choice.note) || "";
+    state.periodLabel = label;
+    const banner = $("period-banner") || $("period-label");
+    const text = $("period-label");
+    const card = $("case-period");
+    const cardNote = $("case-period-note");
+    if (banner) banner.hidden = false;
+    if (text) text.textContent = label;
+    if (card) {
+      card.hidden = false;
+      card.textContent = label;
+    }
+    if (cardNote) {
+      cardNote.hidden = !note;
+      cardNote.textContent = note;
+    }
+    syncOlderToggles(
+      showOlder,
+      !!(choice && choice.showOlderToggle),
+      (choice && choice.toggleLabel) || "Show older map"
+    );
+  }
+
+  function clearPeriodLabel() {
+    state.periodLabel = "";
+    state.periodChoice = null;
+    state.olderMapOn = false;
+    const banner = $("period-banner") || $("period-label");
+    const text = $("period-label");
+    const card = $("case-period");
+    const cardNote = $("case-period-note");
+    if (banner) banner.hidden = true;
+    if (text) text.textContent = "";
+    if (card) {
+      card.hidden = true;
+      card.textContent = "";
+    }
+    if (cardNote) {
+      cardNote.hidden = true;
+      cardNote.textContent = "";
+    }
+    syncOlderToggles(false, false, "Show older map");
+  }
+
+  function paintPeriodGround(choice, olderOn) {
+    const api = window.WNTRPeriodGround;
+    if (!api || !state.map) return;
+    state.olderMapOn = !!olderOn;
+    api.apply(state.map, choice, { beforeId: "case-fill", showOlder: !!olderOn });
+    setPeriodLabel(choice, olderOn);
+  }
+
+  function setOlderMap(on) {
+    if (!state.periodChoice || !state.periodChoice.showOlderToggle) return;
+    paintPeriodGround(state.periodChoice, !!on);
+  }
+
+  async function waitForMapReady(map) {
+    if (!map) return;
+    if (!(map.isStyleLoaded && map.isStyleLoaded())) {
+      await new Promise((resolve) => {
+        if (map.isStyleLoaded && map.isStyleLoaded()) {
+          resolve();
+          return;
+        }
+        const timer = setTimeout(resolve, 12000);
+        const done = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        map.once("style.load", done);
+        map.once("idle", done);
+      });
+    }
+    await waitForIdle(map);
+  }
+
+  function clearPeriodNow() {
+    state.periodToken += 1;
+    state.periodChoice = null;
+    state.olderMapOn = false;
+    if (window.WNTRPeriodGround && state.map) window.WNTRPeriodGround.clear(state.map);
+    clearPeriodLabel();
+  }
+
+  async function applyPeriodGround(c) {
+    const token = ++state.periodToken;
+    const loc = caseViewPoint(c);
+    const api = window.WNTRPeriodGround;
+    state.olderMapOn = false;
+    if (api && state.map) api.clear(state.map);
+    clearPeriodLabel();
+    if (!api || !state.map) {
+      if (token !== state.periodToken) return;
+      setPeriodLabel({ label: "Modern ground: no period imagery available" }, false);
+      return;
+    }
+    let choice;
+    try {
+      choice = await api.choose(c, loc && loc.lon, loc && loc.lat);
+    } catch (err) {
+      console.warn("period ground lookup failed:", err && err.message || err);
+      choice = { kind: "modern", label: "Modern ground: no period imagery available" };
+    }
+    if (token !== state.periodToken) return;
+    await waitForMapReady(state.map);
+    if (token !== state.periodToken) return;
+    state.periodChoice = choice;
+    paintPeriodGround(choice, false);
   }
 
   function openCase(id) {
     const c = state.cases.find((x) => x.id === id);
     if (!c) return;
+    clearPeriodNow();
     state.selectedCaseId = id;
     const card = $("case-card");
     card.hidden = false;
     $("case-kicker").textContent = c.placeholder
       ? "EXAMPLE — not a real case"
-      : "Sample set";
+      : RECORD_BADGE;
     $("case-title").textContent = c.title || "[UNKNOWN]";
     $("case-place").textContent = c.place_label || "Place: [UNKNOWN]";
     const when = [c.date_as_printed, c.time_as_printed].filter(Boolean).join(" · ");
@@ -620,6 +1021,11 @@
     $("case-precision").textContent = c.precision_label || "Precision: [UNKNOWN]";
     $("case-note").textContent = c.precision_note || "";
     $("case-summary").textContent = c.summary || "";
+    const gloss = $("case-status-gloss");
+    if (gloss) {
+      gloss.textContent = c.official_status_gloss || "";
+      gloss.hidden = !c.official_status_gloss;
+    }
     $("case-status").textContent = c.official_status || "";
     const unk = $("case-unknown");
     if (Array.isArray(c.unknown) && c.unknown.length) {
@@ -646,11 +1052,26 @@
     } else {
       src.innerHTML = `<p class="panel-lead">Primary sources: [UNKNOWN]</p>`;
     }
+    const canStreet = !!(c.street_view || locatorCenter(c));
+    const streetBtn = $("btn-street");
+    if (streetBtn) streetBtn.hidden = !canStreet;
+    if (canStreet) {
+      state.periodReady = applyPeriodGround(c);
+    } else {
+      state.periodToken += 1;
+      if (window.WNTRPeriodGround && state.map) window.WNTRPeriodGround.clear(state.map);
+      clearPeriodLabel();
+      state.periodReady = Promise.resolve();
+    }
   }
 
   function closeCase() {
+    state.periodToken += 1;
     state.selectedCaseId = null;
     $("case-card").hidden = true;
+    clearPeriodLabel();
+    if (window.WNTRPeriodGround && state.map) window.WNTRPeriodGround.clear(state.map);
+    state.periodReady = Promise.resolve();
   }
 
   async function flyToGlobe() {
@@ -660,7 +1081,7 @@
   }
 
   async function flyToStreet(id) {
-    const c = state.cases.find((x) => x.id === id) || state.cases[0];
+    const c = state.cases.find((x) => x.id === id);
     if (!c) return;
     const sv = c.street_view || {};
     const loc = (typeof sv.lon === "number" && typeof sv.lat === "number")
@@ -676,27 +1097,22 @@
       duration: flyDuration(4500),
       essential: true
     });
+    await Promise.all([waitForIdle(state.map), state.periodReady]);
     await waitForIdle(state.map);
   }
 
   function renderViewControls() {
     const wrap = $("view-controls");
-    const buttons = [
-      `<button type="button" id="btn-globe">Globe view</button>`,
-      ...state.cases.map((c, i) =>
-        `<button type="button" data-street="${c.id}">Street: ${escapeHtml(c.title || `Case ${i + 1}`)}</button>`
-      )
-    ];
-    wrap.innerHTML = buttons.join("");
+    wrap.innerHTML = `<button type="button" id="btn-globe">Globe view</button>`;
     $("btn-globe").addEventListener("click", () => flyToGlobe());
-    wrap.querySelectorAll("[data-street]").forEach((btn) => {
-      btn.addEventListener("click", () => flyToStreet(btn.dataset.street));
-    });
   }
 
   function wireUi() {
+    $("btn-all-years").addEventListener("click", () => setAllYears());
+    $("btn-prev-year").addEventListener("click", () => shiftYear(-1));
     $("btn-prev-month").addEventListener("click", () => shiftMonth(-1));
     $("btn-next-month").addEventListener("click", () => shiftMonth(1));
+    $("btn-next-year").addEventListener("click", () => shiftYear(1));
     $("day-slider").addEventListener("input", (e) => {
       state.day = Number(e.target.value);
       renderFeed();
@@ -720,6 +1136,15 @@
       state.feedOn = e.target.checked;
       $("feed-panel").style.display = state.feedOn ? "" : "none";
     });
+    const explained = $("toggle-explained");
+    if (explained) {
+      explained.checked = state.showExplained;
+      explained.addEventListener("change", (e) => {
+        state.showExplained = e.target.checked;
+        renderFeed();
+        if (state.map && state.map.isStyleLoaded && state.map.isStyleLoaded()) addCaseLayers();
+      });
+    }
     $("btn-reset-look").addEventListener("click", () => {
       document.querySelector("input[name=look][value=night]").checked = true;
       applyLook("night");
@@ -731,6 +1156,11 @@
     $("btn-close-card").addEventListener("click", closeCase);
     $("btn-street").addEventListener("click", () => {
       if (state.selectedCaseId) flyToStreet(state.selectedCaseId);
+    });
+    const onOlderToggle = (e) => setOlderMap(e.target.checked);
+    ["toggle-older-map", "case-toggle-older-map"].forEach((id) => {
+      const input = $(id);
+      if (input) input.addEventListener("change", onOlderToggle);
     });
     $("btn-layers-toggle").addEventListener("click", () => {
       $("layers-panel").classList.toggle("is-open");
@@ -748,6 +1178,24 @@
     window.__WNTR_GLOBE_gotoGlobe = flyToGlobe;
     window.__WNTR_GLOBE_gotoStreet = flyToStreet;
     window.__WNTR_GLOBE_cases = () => state.cases.map((c) => c.id);
+    window.__WNTR_GLOBE_periodLabel = () => state.periodLabel;
+    window.__WNTR_GLOBE_showOlderMap = (on) => setOlderMap(!!on);
+    window.__WNTR_GLOBE_clusterStats = () => {
+      const map = state.map;
+      if (!map) return null;
+      const has = (id) => !!map.getLayer(id);
+      const clusters = has("case-clusters") ? map.queryRenderedFeatures({ layers: ["case-clusters"] }).length : 0;
+      const unclustered = has("case-locator-core") ? map.queryRenderedFeatures({ layers: ["case-locator-core"] }).length : 0;
+      return {
+        clusters,
+        unclustered,
+        zoom: map.getZoom(),
+        allYears: state.allYears,
+        onGlobe: casesOnGlobe().length,
+        feed: officialFeedCases().length,
+        loaded: state.cases.length
+      };
+    };
   }
 
   async function start() {
@@ -763,9 +1211,10 @@
       $("data-banner").textContent = "Could not load local data files";
       return;
     }
-    state.cases = Array.isArray(casesDoc.cases) ? casesDoc.cases.slice(0, 2) : [];
+    state.cases = Array.isArray(casesDoc.cases) ? casesDoc.cases.slice() : [];
     state.posts = Array.isArray(postsDoc.posts) ? postsDoc.posts : [];
     state.dataStatus = casesDoc.data_status || "EXAMPLE_PLACEHOLDER";
+    setCaseYearBounds(state.cases);
     setDataBanner();
     renderSlider();
     renderViewControls();
@@ -790,6 +1239,18 @@
     });
     state.map = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+    const collapseAttribOnPhone = () => {
+      const el = document.querySelector(".maplibregl-ctrl-attrib");
+      if (!el) return;
+      if (window.innerWidth <= 900) {
+        el.classList.add("maplibregl-compact");
+        el.classList.remove("maplibregl-compact-show");
+        const details = el.querySelector("details");
+        if (details) details.open = false;
+      }
+    };
+    map.on("load", collapseAttribOnPhone);
+    window.addEventListener("resize", collapseAttribOnPhone);
     map.on("style.load", onStyleReady);
     map.on("zoom", () => {
       setTerrainForZoom();

@@ -19,7 +19,8 @@
 
   <header class="chrome-title">
     <h1>WNTR's Globe</h1>
-    <p id="month-label">October 2026</p>
+    <p id="month-label">All years</p>
+    <p id="posts-label" class="posts-label">Posts: October 2026</p>
     <p id="data-banner" class="example-banner" hidden></p>
   </header>
 
@@ -29,6 +30,10 @@
   <aside class="panel panel-left" id="layers-panel">
     <h2>Layers</h2>
     <div class="layer-rows" id="layer-rows"></div>
+    <label class="choice explained-toggle">
+      <input type="checkbox" id="toggle-explained" checked />
+      Show explained/resolved cases
+    </label>
     <button type="button" class="howto-btn" id="btn-howto" aria-expanded="false" aria-controls="howto-panel">
       <span class="howto-icon" aria-hidden="true">▣</span>
       How-to
@@ -69,12 +74,19 @@
     <p class="case-place" id="case-place"></p>
     <p class="case-datetime" id="case-datetime"></p>
     <p class="case-precision" id="case-precision"></p>
+    <p class="case-status-gloss" id="case-status-gloss"></p>
     <p class="case-note" id="case-note"></p>
     <p class="case-summary" id="case-summary"></p>
     <p class="case-status" id="case-status"></p>
     <div id="case-unknown"></div>
     <div id="case-gaps"></div>
     <div id="case-sources"></div>
+    <p class="case-period" id="case-period" hidden></p>
+    <p class="case-period-note" id="case-period-note" hidden></p>
+    <label class="choice period-older-toggle" id="case-older-wrap" hidden>
+      <input type="checkbox" id="case-toggle-older-map" />
+      <span id="case-older-text">Show older map</span>
+    </label>
     <button type="button" class="street-btn" id="btn-street">Zoom to street level</button>
   </article>
 
@@ -82,19 +94,30 @@
 
   <div class="slider-wrap">
     <div class="slider-bar">
+      <button type="button" class="all-years-btn is-on" id="btn-all-years" aria-pressed="true">All years</button>
+      <button type="button" class="month-step" id="btn-prev-year" aria-label="Previous year">«</button>
       <button type="button" class="month-step" id="btn-prev-month" aria-label="Previous month">‹</button>
-      <p class="slider-month" id="slider-month">October 2026</p>
+      <p class="slider-month" id="slider-month">All years</p>
       <div class="slider-track-wrap">
         <div class="slider-ticks" id="slider-ticks"></div>
         <input type="range" id="day-slider" min="1" max="31" value="15" aria-label="Day in the current month" />
       </div>
       <button type="button" class="month-step" id="btn-next-month" aria-label="Next month">›</button>
+      <button type="button" class="month-step" id="btn-next-year" aria-label="Next year">»</button>
     </div>
   </div>
 
+  <div class="period-banner" id="period-banner" hidden>
+    <p class="period-banner-text" id="period-label"></p>
+    <label class="period-older-toggle" id="period-older-wrap" hidden>
+      <input type="checkbox" id="toggle-older-map" />
+      <span id="period-older-text">Show older map</span>
+    </label>
+  </div>
   <p class="credit">From public posts by @wntrslmbr</p>
 
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.1/dist/maplibre-gl.js"></script>
+  <script src="./js/period-ground.js"></script>
   <script src="./js/app.js"></script>
 </body>
 </html>
