@@ -1,0 +1,23 @@
+# Local / OS
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*.swo
+*~
+
+# Secrets — never commit these
+.env
+.env.*
+!.env.example
+
+# Tooling
+node_modules/
+.idea/
+.vscode/
+.cache/
+dist/
+__pycache__/
+.pytest_cache/
+.python-version
+*.local
