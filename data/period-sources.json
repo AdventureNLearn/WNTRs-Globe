@@ -1,0 +1,109 @@
+{
+  "updated_et": "2026-11-18T10:00:00-05:00",
+  "note": "Free, keyless historical basemap sources researched for Ground at time of incident. Only sources marked use_in_app true are wired into the picker. Never claim a closer date than the source actually supports.",
+  "sources": [
+    {
+      "id": "usgs-htmc-imageserver",
+      "name": "USGS Historical Topographic Map Collection (ImageServer)",
+      "coverage_years": "1884–2006",
+      "coverage_regions": "United States, including Puerto Rico; other territories [UNKNOWN] beyond the boxes used in js/period-ground.js",
+      "tile_url": "https://historical1.arcgis.com/arcgis/rest/services/USGS_Historical_Topographic_Maps/ImageServer/exportImage?f=image&format=png&transparent=true&bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&mosaicRule=...",
+      "query_url": "https://historical1.arcgis.com/arcgis/rest/services/USGS_Historical_Topographic_Maps/ImageServer/query",
+      "key_required": false,
+      "license": "Public domain (U.S. Government work). Credit USGS. Requested acknowledgment: Map services and data available from U.S. Geological Survey, National Geospatial Program.",
+      "cors_for_maplibre": "Yes, checked 18 November 2026 from http://127.0.0.1:8080: Access-Control-Allow-Origin reflects the request Origin; Access-Control-Allow-Credentials is true. Query and exportImage both returned those headers.",
+      "use_in_app": true,
+      "notes": "DateCurrent is a year. The app queries the latest sheet at or before the case year at the named-site point, then mosaics DateCurrent <= case year. At Aguadilla the latest sheet before 2013 is DateCurrent/Date_On_Map 1960, 1:20,000, imprint year 1983."
+    },
+    {
+      "id": "usgs-historic-mapserver",
+      "name": "USGS The National Map historic MapServer",
+      "coverage_years": "[UNKNOWN] (service not found)",
+      "coverage_regions": "[UNKNOWN]",
+      "tile_url": "https://basemap.nationalmap.gov/arcgis/rest/services/historic/MapServer/tile/{z}/{y}/{x}",
+      "key_required": false,
+      "license": "If the service existed, USGS National Map services are public domain with USGS credit.",
+      "cors_for_maplibre": "[UNKNOWN] — the service itself returned 404 Service historic/MapServer not found on 18 November 2026.",
+      "use_in_app": false,
+      "notes": "A third-party 2026 blog still lists this URL. It is not date-filterable even when present, so it would not be used as a dated period match."
+    },
+    {
+      "id": "usgs-eros-aerials",
+      "name": "USGS EROS historical aerial photography",
+      "coverage_years": "About 1937–2014 for Aerial Photo Single Frames / mosaics (as published on the EROS collection page)",
+      "coverage_regions": "United States, sporadic, not a seamless nationwide mosaic",
+      "tile_url": "[UNKNOWN] — no public keyless XYZ or WMTS was found on USGS EROS itself. Access is through EarthExplorer, which requires a login for download.",
+      "key_required": "EarthExplorer account for download; no public tile key was found because no public tile API was found.",
+      "license": "U.S. Government work, generally public domain, with USGS credit. Confirm per frame if needed.",
+      "cors_for_maplibre": "[UNKNOWN] — no tile endpoint to test.",
+      "use_in_app": false,
+      "notes": "University of Montana Landscape Explorer offers a WMTS of mid-century EROS-derived imagery for 17 western U.S. states, but it is CC BY-NC 4.0, which is not used here."
+    },
+    {
+      "id": "esri-world-imagery-wayback",
+      "name": "Esri World Imagery Wayback",
+      "coverage_years": "Release catalog 20 February 2014 through 29 October 2026 (198 releases checked in waybackconfig.json)",
+      "coverage_regions": "Worldwide mosaic; local update dates vary and can lag the release date",
+      "tile_url": "https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/{releaseId}/{z}/{y}/{x}",
+      "catalog_url": "https://s3-us-west-2.amazonaws.com/config.maptiles.arcgis.com/waybackconfig.json",
+      "key_required": false,
+      "license": "Esri Master Agreement / Terms of Use, not a public-domain or CC license. Attribution required. The official Wayback app documents an ArcGIS APP_ID for its own client.",
+      "cors_for_maplibre": "Yes, checked 18 November 2026: tiles and the catalog JSON return Access-Control-Allow-Origin: *.",
+      "use_in_app": false,
+      "notes": "Technically keyless and CORS-friendly, but not used: the license is not a free reuse grant, and the archive starts in 2014, which is after both current pilot dates (1980 and April 2013) if the rule is at or before the case date."
+    },
+    {
+      "id": "nls-historic-maps-api",
+      "name": "National Library of Scotland Historic Maps API (MapTiler Cloud)",
+      "coverage_years": "Layer-dependent (for example OS 1885–1903, 1937–1961, 1955–1961)",
+      "coverage_regions": "Great Britain, Ireland, and selected city layers",
+      "tile_url": "https://api.maptiler.com/tiles/{tileset}/{z}/{x}/{y}.jpg?key=YOUR_KEY",
+      "key_required": true,
+      "license": "Attribution to the National Library of Scotland required, plus MapTiler Cloud terms. Free tier is limited and non-commercial.",
+      "cors_for_maplibre": "[UNKNOWN] — not tested, because a key is required and keys are not used.",
+      "use_in_app": false,
+      "notes": "This API moved to MapTiler Cloud in March 2022 and is not keyless."
+    },
+    {
+      "id": "nls-os-2500-1974",
+      "name": "NLS OS 1:2,500 National Grid, 1974 (hosted XYZ)",
+      "coverage_years": "1974 (layer name/year; per-sheet survey dates inside the layer were not retrieved)",
+      "coverage_regions": "Great Britain; confirmed present at Rendlesham Forest / MOD Woodbridge at zooms 12–18 on 18 November 2026",
+      "tile_url": "https://geo.nls.uk/mapdata3/os/2500_1974/{z}/{x}/{y}.png",
+      "key_required": false,
+      "license": "CC BY. Required credit: Courtesy of the National Library of Scotland. NLS also publishes a commercial reuse charging policy for high-volume use of its hosted georeferenced layers.",
+      "cors_for_maplibre": "Yes, checked 18 November 2026: Access-Control-Allow-Origin: *.",
+      "use_in_app": true,
+      "notes": "Used for Great Britain cases when the case date is 1974 or later and no closer dated source is available. Preferred over the 1949–1970 six-inch layer when both apply. App requests only zooms 12–18 and the Great Britain bounds, to avoid tile 404s.",
+      "tile_minzoom": 12,
+      "tile_maxzoom": 18
+    },
+    {
+      "id": "nls-os-10560-1949-1970",
+      "name": "NLS OS 1:10,560 Great Britain, 1949–1970 (S3 XYZ)",
+      "coverage_years": "1949–1970 (layer span; per-pixel sheet year [UNKNOWN])",
+      "coverage_regions": "Great Britain; confirmed at Rendlesham at zooms 12–16; zoom 18 was 404",
+      "tile_url": "https://mapseries-tilesets.s3.amazonaws.com/os/britain10knatgrid/{z}/{x}/{y}.png",
+      "key_required": false,
+      "license": "CC BY. Courtesy of the National Library of Scotland.",
+      "cors_for_maplibre": "Yes, S3 tiles return Access-Control-Allow-Origin: * (checked on neighboring NLS S3 tilesets, 18 November 2026).",
+      "use_in_app": true,
+      "notes": "Fallback for Great Britain when the case date is before 1974 and at or after 1949, or if a later NLS layer does not apply. App requests only zooms 12–16 and the Great Britain bounds, to avoid tile 404s.",
+      "tile_minzoom": 12,
+      "tile_maxzoom": 16
+    },
+    {
+      "id": "openhistoricalmap",
+      "name": "OpenHistoricalMap vector tiles",
+      "coverage_years": "Features are individually dated; coverage is worldwide but sparse and uneven",
+      "coverage_regions": "Worldwide, only where contributors have mapped a dated feature",
+      "tile_url": "https://vtiles.openhistoricalmap.org/maps/ohm/{z}/{x}/{y}.pbf",
+      "style_url": "https://unpkg.com/@openhistoricalmap/map-styles@latest/dist/historical/historical.json",
+      "key_required": false,
+      "license": "Data is generally CC0 / public domain unless a feature is tagged otherwise. Landmass tiles derived from OpenStreetMap coastlines are ODbL. Courtesy credit to OpenHistoricalMap is requested.",
+      "cors_for_maplibre": "Yes, checked 18 November 2026: vtiles and the unpkg style JSON return Access-Control-Allow-Origin: *. A Rendlesham z14 tile was HTTP 204 (empty), which is expected where no features are present.",
+      "use_in_app": true,
+      "notes": "Used only as a dated overlay of buildings and roads (start_decdate / end_decdate). Features without a start date are hidden so undated data is not presented as period-correct. The overlay is never the sole basis for a Period map label."
+    }
+  ]
+}

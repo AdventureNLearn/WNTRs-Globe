@@ -26,24 +26,31 @@ Relative paths are used throughout so the same folder can be served from GitHub 
 
 - A night-Earth globe that zooms smoothly down to a simulated street-level view (3D building shapes and terrain).
 - A layer panel: Sightings, Receipts, Hid it in plain sight, Find the patterns, Psyop season, and How-to.
-- A month slider. Each layer shows one calendar month at a time. Dragging the day handle highlights a day; the rest of the month stays visible.
-- A **Not on the map** feed for posts that have no place pin.
-- Two official-record cases drawn as **named-site areas**, not exact event pins. Each area is labeled with the precision the source actually gives. The app never tightens that precision, and it never treats a site outline or a published airport point as the object's position.
+- A time slider that opens in **All years**, so official-record cases from the 1940s through the 2020s are visible together. Year and month buttons step out of All years into a single year or month. Posts stay monthly: the day track and **Posts:** label still follow one calendar month (the current window is June–November 2026).
+- A **Not on the map** feed for official-record cases whose location or date is **[UNKNOWN]**, and for posts that have no place pin.
+- Official-record cases drawn only as the official record allows. The badge is **Official-record cases: areas shown as recorded**. The app never tightens the source precision, never invents coordinates, and never treats a site outline or a published reference point as the object's position. At globe zoom, locators are clustered so the map stays uncluttered.
 
-## The two pilot cases
+## How cases are drawn
 
-These two cases are a starter sample so people can get to know the app. More cases are added over time.
+Loaded from the 18 November 2026 official-record pack (200 cases: 133 from the first pass, plus 67 from `cases-part2.csv`). Every case card carries the primary-source citations with links. The import can be rerun when the pack is updated; duplicate ids are skipped.
 
-Loaded from the 18 November 2026 source pack. Event lat/lon are **[UNKNOWN]** in both official records.
+- **Point** — the printed lat/lon, with a precision note. Typical GEIPAN export values are two decimal degrees (about 1 km). These are official printed values, not a surveyed event fix.
+- **Reference point** — a cross at a printed reference coordinate (for example a published waypoint or an airport reference point), labeled **not the object's position**.
+- **Named site** — the named place is geocoded with the OpenStreetMap Nominatim API (one request per second, cached in `data/geocode-cache.json`). If OSM has an outline, that outline is drawn; otherwise a labeled approximate circle sized to the place type is used. The label is **Named site location from OpenStreetMap, not an event fix**.
+- **[UNKNOWN] location or date** — the case stays in the **Not on the map** feed. It is not placed on the globe.
 
-1. **The Puerto Rico Object** — Rafael Hernandez Airport, near Aguadilla, 26 April 2013, 9:22 p.m. local time (AARO case-resolution report, 20 March 2025). The shaded area is the OpenStreetMap outline of the named airport (way 30289545). A cross marks the FAA airport reference point, printed in the pack as `18-29-41.468 N / 67-7-45.99 W` and converted to decimal degrees only for map display, labeled **Airport reference point (FAA), not the object's position**. The objects’ path is not drawn.
-2. **Rendlesham Forest / RAF Woodbridge** — December 1980, as recorded in Lt Col Halt’s “Unexplained Lights” memorandum (UK National Archives, DEFE 24/1948). The shaded areas are the OpenStreetMap outlines of Rendlesham Forest (way 243960117) and of MOD Woodbridge / Rock Barracks (way 37325516), labeled **Named site location from OpenStreetMap, not an event fix**. OSM has no feature named “RAF Woodbridge” or “back gate” in the extract taken on 18 November 2026. An OSM tourism viewpoint named “Rendlesham East Gate” was not used as the official gate. Times and claims in the info panel are those printed in the pack, including every **[UNKNOWN]**.
+Each case card shows the official status as printed, with a short English gloss. GEIPAN class D is labeled **Unexplained (GEIPAN class D)**. Chile rows that print Resuelto, Explicado or Cerrado are glossed as Resolved, Explained or Closed. A **Show explained/resolved cases** toggle, on by default, can hide that group.
+
+Fifteen UK Ministry of Defence Directorate of Air Staff rows were read from dated archived snapshots of official MoD Publication Scheme pages. Each of those cards cites the original MoD URL and an archive URL labeled **Archived copy of official MoD page, captured** with the snapshot date.
+
+Examples of those rules: the Puerto Rico Object is the OpenStreetMap outline of Rafael Hernandez Airport plus a cross at the FAA airport reference point, not an object path. Rendlesham Forest / RAF Woodbridge uses the OSM outlines of Rendlesham Forest and of MOD Woodbridge / Rock Barracks; event lat/lon in those records is **[UNKNOWN]**.
 
 Primary-source links are in each case card and in `data/cases.json`.
 
 ## Data
 
-- `data/cases.json` — the two reference cases, including named-site polygons and (for Aguadilla) the FAA reference point.
+- `data/cases.json` — official-record cases built by `scripts/import-cases.mjs` from the source pack (`cases.csv`, and `cases-part2.csv` when it is present). Rerun the script to refresh the file. Duplicates are skipped by id.
+- `scripts/geocode-cache.json` — local Nominatim cache for named-site lookups, not published with the app. The import uses the User-Agent `WNTRs-Globe/1.0 (https://github.com/AdventureNLearn/WNTRs-Globe; official-record case import)` and waits at least one second between requests. Curated Rendlesham and Aguadilla fields in `scripts/curated-pilots.json` are kept when the import is rerun.
 - `data/posts.json` — month-scoped posts for the layers and the unlocated feed. Currently empty; no posts have been approved for import.
 
 No personal data and no witness details belong in these files, except public officials already named in the official records. No live scrape. No API keys.
@@ -83,6 +90,29 @@ The upstream elevation sources require credit. The canonical list is in the [Til
 - United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey.
 
 Street level in this prototype is **simulated**: extruded OpenStreetMap building footprints, roads, and terrain. It is not photographic street view.
+
+## Ground at the time of the incident
+
+When a case is opened, the app looks for a free, keyless basemap dated **at or before** the case date. "Period" means close in time: the map is used as the period ground only if it is **no more than 10 years** older than the incident. The label always includes that gap, for example `Period map: NLS OS 1:2,500 1974 (6 years before Dec 1980)`.
+
+If the nearest dated map is more than 10 years older, the modern simulated view stays up, labeled like `Modern ground: no period map within 10 years (nearest: USGS topo 1960)`. A small **Show 1960 map** toggle still lets you view that older sheet, labeled with its year and the gap, for example `Older map: USGS topo 1960 (53 years before Apr 2013)`. If no earlier map is found at all, the label is `Modern ground: no period imagery available`. The app never claims a tighter date than the source supports.
+
+The date used for that lookup is `incident_date` in `data/cases.json`, taken from the official printed date. Year-only, month-only, and year-range official dates are used as printed; a missing day is not invented. The year gap is the incident year minus the map year.
+
+**Sources used in the app**
+
+- United States and Puerto Rico: [USGS Historical Topographic Map Collection](https://www.usgs.gov/programs/national-geospatial-program/historical-topographic-maps-preserving-past) via the public ImageServer. Public domain; credit the U.S. Geological Survey. The latest sheet at the Aguadilla airport reference point before 2013 is a 1960 1:20,000 topo (imprint year 1983), which is more than 10 years earlier, so it is offered only behind the older-map toggle.
+- Great Britain: National Library of Scotland keyless XYZ tiles, [CC BY](https://maps.nls.uk/guides/georeferencing/commercial-use/). Credit: Courtesy of the National Library of Scotland. Rendlesham uses the OS 1:2,500 National Grid 1974 layer (`https://geo.nls.uk/mapdata3/os/2500_1974/{z}/{x}/{y}.png`), 6 years before the first reported night. An OS 1:10,560 1949–1970 layer is the fallback when 1974 does not apply.
+- Overlay only: [OpenHistoricalMap](https://www.openhistoricalmap.org/) vector tiles, generally CC0, filtered to features that have a `start_decdate` at or before the case date. Empty coverage is left blank. This overlay is never enough, on its own, to label the view as a period map.
+
+**Looked at and not used**
+
+- USGS `historic/MapServer` on basemap.nationalmap.gov: the service was not found (404) on 18 November 2026, and it would not have been date-selectable.
+- USGS EROS aerials: no public keyless tile API was found; EarthExplorer requires a login to download frames.
+- Esri World Imagery Wayback: tiles are keyless and CORS-open from 20 February 2014 onward, but they sit under Esri's Terms of Use, not a free reuse license, and the archive starts in 2014, after many of the official-record cases.
+- NLS Historic Maps API on MapTiler Cloud: requires an API key.
+
+The research table, including CORS checks, is in `data/period-sources.json`.
 
 ## License
 
