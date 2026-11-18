@@ -1,0 +1,154 @@
+{
+  "aaro-puerto-rico-2013": {
+    "time_notes": "The AARO report also states that “sunset occurred at 7:48 p.m. local time.” Footnote 5 (www.sunrisesunset.com) is attached after the sentence that contains both figures, so it is [UNKNOWN] from the report’s layout alone whether the 9:22 p.m. figure is sensor metadata, the cited site, or both. The report does not spell out a named time zone beyond “local time.”",
+    "source_gaps": [
+      "The official video file and the Digital Systems Toolkit reconstruction linked from the AARO pages were not separately downloaded in the source pack."
+    ],
+    "unknown": [
+      "Event lat/lon (not printed in the AARO report)",
+      "Named time zone beyond “local time”",
+      "Exact derivation of the 9:22 p.m. figure (footnote 5 placement)",
+      "Numeric coordinates for the objects’ path"
+    ],
+    "sources": [
+      {
+        "label": "AARO case-resolution PDF, “The Puerto Rico Object,” 20 March 2025",
+        "url": "https://www.aaro.mil/Portals/136/PDFs/case_resolution_reports/AARO_Puerto_Rico_UAP_Case_Resolution.pdf",
+        "status": "we-have-a-record"
+      },
+      {
+        "label": "AARO UAP Case Resolution Reports index",
+        "url": "https://www.aaro.mil/UAP-Cases/UAP-Case-Resolution-Reports/",
+        "status": "we-have-a-record"
+      },
+      {
+        "label": "AARO Official UAP Imagery index",
+        "url": "https://www.aaro.mil/UAP-Cases/Official-UAP-Imagery/",
+        "status": "we-have-a-record"
+      },
+      {
+        "label": "FAA Aeronautical Information Services airport record, Rafael Hernandez (BQN)",
+        "url": "https://nfdc.faa.gov/nfdcApps/services/ajv5/airportDisplay.jsp?airportId=BQN",
+        "status": "we-have-a-record"
+      }
+    ],
+    "precision_label": "Airport reference point (FAA), not the object's position. The shaded outline is the named airport area from OpenStreetMap. Event lat/lon: [UNKNOWN]. Geometry in the official report: an area over the airport, from the northeastern side to the central parking apron, not a single event point.",
+    "precision_note": "The FAA figures are the airport reference point, not the objects’ path. Decimal degrees 18.4948522222, -67.1294416667 are a direct conversion of the printed DMS figures and are used only to plot that reference point. The objects’ path was not given as coordinates and is not drawn.",
+    "time_as_printed": "9:22 p.m. local time",
+    "date_as_printed": "April 26, 2013",
+    "official_status": "Officially confirmed (that the record exists): AARO published a case-resolution report stating that CBP infrared footage was recorded on April 26, 2013 above Rafael Hernandez Airport. Analytic conclusions in that report are AARO’s assessments, not a separately confirmed identification.",
+    "place_label": "Rafael Hernandez Airport, near Aguadilla, Puerto Rico",
+    "place_as_written": "A U.S. Customs and Border Protection aircraft “flying above Rafael Hernandez Airport near Aguadilla, Puerto Rico.” The IR sensor “first detected the objects near the northeastern side of the airport” and “lost contact with them over the airport’s central parking apron.” The report states that a reconstruction “demonstrates that the objects remained over land during the encounter.”",
+    "incident_date": "2013-04-26",
+    "incident_date_source": "Printed in the AARO case-resolution report as April 26, 2013.",
+    "street_view": {
+      "lon": -67.1294416667,
+      "lat": 18.4948522222,
+      "zoom": 16.35,
+      "pitch": 55,
+      "bearing": 240,
+      "note": "Camera is framed on the FAA airport reference point, looking inland across the named airport, so the OpenStreetMap airport outline and buildings can be seen at street level. This is not the object's position."
+    },
+    "title": "The Puerto Rico Object",
+    "reference_points": [
+      {
+        "id": "bqn-faa-arp",
+        "lat": 18.4948522222,
+        "lon": -67.1294416667,
+        "as_printed": "18-29-41.468 N / 67-7-45.99 W",
+        "label": "Airport reference point (FAA), not the object's position",
+        "source_label": "FAA Aeronautical Information Services airport record for RAFAEL HERNANDEZ, Aguadilla, PR, identifier BQN, data effective 10/29/2026–11/26/2026. Quoted as printed in the source pack, then converted from DMS to decimal degrees for map display only."
+      }
+    ],
+    "area_overlays": [
+      {
+        "id": "bqn-airport",
+        "name": "Aeropuerto Internacional Rafael Hernández",
+        "source_label": "OpenStreetMap way 30289545 (Nominatim, 18 November 2026)"
+      }
+    ]
+  },
+  "tna-defe24-1948-rendlesham-1980": {
+    "time_notes": "The memorandum does not further define the “L” suffix. Zone beyond that suffix: [UNKNOWN]. The “next day” depressions are not given a numbered calendar date. Clock time for the 29 Dec 80 radiation check: [UNKNOWN]. Paragraph 3 follows the 29 Dec 80 sentence but does not explicitly re-date itself; clock time for paragraph 3: [UNKNOWN].",
+    "source_gaps": [
+      "UK National Archives Discovery catalogue record for the digital copy of DEFE 24/1948 was not read (HTTP 403): https://discovery.nationalarchives.gov.uk/details/r/C10342055",
+      "The remainder of file DEFE 24/1948, beyond the Halt memorandum preview, was not paged through in the source pack."
+    ],
+    "unknown": [
+      "Event lat/lon in the memorandum and official pages read",
+      "Official gazetteer coordinates for RAF Woodbridge or Rendlesham Forest (not retrieved in the source pack)",
+      "Meaning of the “L” suffix in “0300L,” and the time zone beyond that suffix",
+      "Clock time for the 29 Dec 80 radiation check",
+      "Calendar date and clock time for paragraph 3 (“Later in the night”)",
+      "Exact location of the “back gate” (no coordinates in the official record; no OSM feature by that name)"
+    ],
+    "sources": [
+      {
+        "label": "UK National Archives digital copy of DEFE 24/1948/1 (2), Halt memorandum “Unexplained Lights”",
+        "url": "https://images.nationalarchives.gov.uk/asset/76305/",
+        "status": "we-have-a-record"
+      },
+      {
+        "label": "Official TNA preview image of the Halt memorandum",
+        "url": "https://images.nationalarchives.gov.uk/fe-cdn/tna/previews/255/76305/6e61f288a7eb8dccfe0b90925f110152/2/908e78067cdb1f2fbab444dbfd293f1b/76305.jpg",
+        "status": "we-have-a-record"
+      },
+      {
+        "label": "UK National Archives, “UFO reports” collection page (DEFE 24/1948/1)",
+        "url": "https://www.nationalarchives.gov.uk/explore-the-collection/explore-by-time-period/postwar/ufo-reports/",
+        "status": "we-have-a-record"
+      },
+      {
+        "label": "UK National Archives research guide, “UFOs”",
+        "url": "https://www.nationalarchives.gov.uk/help-with-your-research/research-guides/ufos/",
+        "status": "we-have-a-record"
+      },
+      {
+        "label": "UK National Archives briefing guide, 12 July 2012",
+        "url": "https://cdn.nationalarchives.gov.uk/documents/briefing-guide-12-07-12.pdf",
+        "status": "we-have-a-record"
+      },
+      {
+        "label": "UK National Archives August 2009 UFO-files highlights guide",
+        "url": "https://cdn.nationalarchives.gov.uk/documents/aug-2009-highlights-guide.pdf",
+        "status": "we-have-a-record"
+      },
+      {
+        "label": "Historic Hansard, House of Lords written answer, 16 October 2001, vol. 627 c84WA",
+        "url": "https://api.parliament.uk/historic-hansard/written-answers/2001/oct/16/rendlesham-forest-incident",
+        "status": "we-have-a-record"
+      }
+    ],
+    "precision_label": "Named site location from OpenStreetMap, not an event fix",
+    "precision_note": "The official record names the back gate at RAF Woodbridge and an area of Rendlesham Forest, but does not print coordinates. Official gazetteer coordinates were not retrieved in the source pack. The shaded outlines are the OpenStreetMap features for Rendlesham Forest and for MOD Woodbridge (Rock Barracks). No OpenStreetMap feature named “back gate” or “RAF Woodbridge” was found. An OSM tourism viewpoint named “Rendlesham East Gate” exists in the forest area; it is not used here as the official back-gate location, because the official record does not use that name and does not give coordinates.",
+    "time_as_printed": "Approximately 0300L on 27 Dec 80; no clock time given for 29 Dec 80; paragraph 3 begins “Later in the night.”",
+    "date_as_printed": "Memorandum date: 13 Jan 81. First reported observation: “Early in the morning of 27 Dec 80 (approximately 0300L).” Radiation check: “The following night (29 Dec 80).”",
+    "official_status": "Officially confirmed (that the report exists): The UK National Archives holds the Ministry of Defence file and presents the Halt memorandum as the “single sheet report” that is “the only record of the event itself” in its holdings. A 16 October 2001 House of Lords written answer stated that this was the only USAF material held by the MoD on the incident, that MoD records from the same period “document no evidence of unusual radar returns,” and that there was “no indication from the papers held on file that MoD raised any further questions with Lieutenant Colonel Halt following receipt of his memorandum in 1981.” The National Archives collection page says a note in response to a Parliamentary Question “confirmed that there was nothing of defence interest in the alleged sighting.”",
+    "place_label": "Back gate at RAF Woodbridge, and Rendlesham Forest, Suffolk",
+    "place_as_written": "“unusual lights outside the back gate at RAF Woodbridge”; a “strange glowing object in the forest”; later “near the back gate”; then “the area” where depressions were found. The UK National Archives collection page places the events at “a Royal Air Force (RAF) base in Suffolk,” names RAF Woodbridge, and says servicemen “investigated an area of Rendlesham Forest on two separate nights.”",
+    "incident_date": "1980-12-27",
+    "incident_date_source": "First reported observation in the Halt memorandum: Early in the morning of 27 Dec 80 (approximately 0300L). Later nights are not used for the period-map date.",
+    "street_view": {
+      "lon": 1.3994225,
+      "lat": 52.086027200000004,
+      "zoom": 15.1,
+      "pitch": 52,
+      "bearing": 40,
+      "note": "Camera is framed at the midpoint between the OpenStreetMap centroids of Rendlesham Forest (52.0865885, 1.4093625) and MOD Woodbridge (52.0854659, 1.3894825), so both named-site outlines can be seen. This midpoint is a view-framing aid only. It is not an event fix and is not the back gate."
+    },
+    "title": "Rendlesham Forest / RAF Woodbridge",
+    "area_overlays": [
+      {
+        "id": "rendlesham-forest",
+        "name": "Rendlesham Forest",
+        "source_label": "OpenStreetMap way 243960117, leisure=nature_reserve (Nominatim, 18 November 2026)"
+      },
+      {
+        "id": "mod-woodbridge",
+        "name": "MOD Woodbridge (Rock Barracks)",
+        "source_label": "OpenStreetMap way 37325516, military=base (Nominatim, 18 November 2026)",
+        "note": "OSM maps the current military site under this name. A feature named “RAF Woodbridge” was not found in OpenStreetMap in the extract taken on 18 November 2026. This outline is not a 1980 base boundary and is not an event fix."
+      }
+    ]
+  }
+}
