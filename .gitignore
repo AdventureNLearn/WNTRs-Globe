@@ -21,3 +21,10 @@ __pycache__/
 .pytest_cache/
 .python-version
 *.local
+
+# Local Nominatim cache from scripts/import-cases.mjs; not part of the published app.
+scripts/geocode-cache.json
+data/geocode-cache.json
+
+# Local review and smoke screenshots; not part of the published app.
+shots/
