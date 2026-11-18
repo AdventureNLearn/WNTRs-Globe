@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="color-scheme" content="dark" />
+  <title>WNTR's Globe</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <div id="stars" aria-hidden="true"></div>
+  <div id="orbits" class="is-off" aria-hidden="true">
+    <span class="orbit orbit-a"></span>
+    <span class="orbit orbit-b"></span>
+  </div>
+  <div id="map" role="application" aria-label="WNTR's Globe"></div>
+
+  <header class="chrome-title">
+    <h1>WNTR's Globe</h1>
+    <p id="month-label">October 2026</p>
+    <p id="data-banner" class="example-banner" hidden></p>
+  </header>
+
+  <button type="button" class="panel-toggle" id="btn-layers-toggle" aria-expanded="true" aria-controls="layers-panel">Layers</button>
+  <button type="button" class="panel-toggle panel-toggle-right" id="btn-feed-toggle" aria-expanded="true" aria-controls="feed-panel">Feed</button>
+
+  <aside class="panel panel-left" id="layers-panel">
+    <h2>Layers</h2>
+    <div class="layer-rows" id="layer-rows"></div>
+    <button type="button" class="howto-btn" id="btn-howto" aria-expanded="false" aria-controls="howto-panel">
+      <span class="howto-icon" aria-hidden="true">▣</span>
+      How-to
+    </button>
+  </aside>
+
+  <aside class="panel panel-right" id="feed-panel">
+    <h2>Not on the map</h2>
+    <p class="panel-lead">These posts have no place pin, on purpose.</p>
+    <div id="feed-list"></div>
+  </aside>
+
+  <section class="panel howto-panel" id="howto-panel" hidden>
+    <h2>How-to</h2>
+    <p class="panel-lead">How the globe looks. Story layers stay in the left panel.</p>
+    <div class="howto-block">
+      <h3>Look</h3>
+      <label class="choice"><input type="radio" name="look" value="night" checked /> Night Earth</label>
+      <label class="choice"><input type="radio" name="look" value="schematic" /> Schematic</label>
+      <label class="choice"><input type="radio" name="look" value="receipts" /> Receipts</label>
+    </div>
+    <div class="howto-block">
+      <h3>Optional</h3>
+      <label class="choice"><input type="checkbox" id="toggle-orbits" /> Show orbits</label>
+      <label class="choice"><input type="checkbox" id="toggle-feed" checked /> Show the unlocated feed</label>
+    </div>
+    <div class="howto-block is-disabled">
+      <h3>Later</h3>
+      <label class="choice"><input type="checkbox" disabled /> Planets and the wider galaxy — later</label>
+    </div>
+    <button type="button" class="text-btn" id="btn-reset-look">Reset to Night Earth</button>
+  </section>
+
+  <article class="panel case-card" id="case-card" hidden>
+    <button type="button" class="card-close" id="btn-close-card" aria-label="Close">×</button>
+    <p class="case-kicker" id="case-kicker"></p>
+    <h2 id="case-title"></h2>
+    <p class="case-place" id="case-place"></p>
+    <p class="case-datetime" id="case-datetime"></p>
+    <p class="case-precision" id="case-precision"></p>
+    <p class="case-note" id="case-note"></p>
+    <p class="case-summary" id="case-summary"></p>
+    <p class="case-status" id="case-status"></p>
+    <div id="case-unknown"></div>
+    <div id="case-gaps"></div>
+    <div id="case-sources"></div>
+    <button type="button" class="street-btn" id="btn-street">Zoom to street level</button>
+  </article>
+
+  <div class="view-controls" id="view-controls"></div>
+
+  <div class="slider-wrap">
+    <div class="slider-bar">
+      <button type="button" class="month-step" id="btn-prev-month" aria-label="Previous month">‹</button>
+      <p class="slider-month" id="slider-month">October 2026</p>
+      <div class="slider-track-wrap">
+        <div class="slider-ticks" id="slider-ticks"></div>
+        <input type="range" id="day-slider" min="1" max="31" value="15" aria-label="Day in the current month" />
+      </div>
+      <button type="button" class="month-step" id="btn-next-month" aria-label="Next month">›</button>
+    </div>
+  </div>
+
+  <p class="credit">From public posts by @wntrslmbr</p>
+
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.1/dist/maplibre-gl.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
