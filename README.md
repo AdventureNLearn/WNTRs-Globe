@@ -2,25 +2,33 @@
 
 A night globe for walking through WNTR's public UFO posts in time and on the Earth — sightings, receipts, cover stories, pattern-hunting, and the noise that gets called out — without inventing a single location.
 
-Public repository on GitHub Pages. Nothing here has been posted in WNTR's name.
+Public static web app (live at [wntrsglobe.grok.me](https://wntrsglobe.grok.me/)). Nothing here has been posted in WNTR's name.
 
 The first audience is WNTR. Pins go only on things tied to a place. Posts with no place sit in the **Not on the map** feed, on purpose.
 
 Spelling of the name is always **WNTR**. The app is **WNTR's Globe**.
+
+## Risks (read first)
+
+- **Static client-side app, not a sandbox.** When run locally, `python3 -m http.server 8080 --bind 127.0.0.1` serves files from this folder on loopback only. That is not a VM or a separate OS user; anything running under the same OS user or browser profile shares local browser state.
+- **No account or API key is required.** Do not add secrets, tokens, or personal data to `data/` or `scripts/`.
+- **Public map and tile requests leave your browser.** The app loads MapLibre GL JS, the dark basemap/streets (OpenFreeMap), 3D terrain (AWS Open Data Terrain Tiles), and period basemaps (USGS, National Library of Scotland, OpenHistoricalMap) from those public hosts. Those hosts have no SLA.
+- **Official-record precision is never tightened.** Locations marked `[UNKNOWN]` stay off the map, and named-site outlines from OpenStreetMap are site boundaries, not event fixes.
+- **You are responsible** for rights and required attributions when reusing case data or map tiles.
 
 ## How to run it
 
 From this folder (the repository root):
 
 ```bash
-python3 -m http.server 8080
+python3 -m http.server 8080 --bind 127.0.0.1
 ```
 
-Then open [http://localhost:8080](http://localhost:8080).
+Then open [http://127.0.0.1:8080](http://127.0.0.1:8080).
 
 Any simple static file server works. Do not open `index.html` as a `file://` URL; the app loads local JSON, and most browsers will block that.
 
-Relative paths are used throughout so the same folder can be served from GitHub Pages at the repository root. Do not add a leading `/` to asset or data URLs.
+Relative paths are used throughout so the same folder can be served from any static host root (such as grok.me or GitHub Pages). Do not add a leading `/` to asset or data URLs.
 
 ## What you are looking at
 
@@ -120,7 +128,7 @@ MIT License. See `LICENSE`. Map data and tiles keep their own licenses and credi
 
 ## Status
 
-Public repository on GitHub Pages, 18 November 2026.
+Public repository; live site hosted at [wntrsglobe.grok.me](https://wntrsglobe.grok.me/) (GitHub Pages is currently off).
 
 - Repository: https://github.com/AdventureNLearn/WNTRs-Globe
 - Live site: https://wntrsglobe.grok.me/
