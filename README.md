@@ -123,4 +123,4 @@ MIT License. See `LICENSE`. Map data and tiles keep their own licenses and credi
 Public repository on GitHub Pages, 18 November 2026.
 
 - Repository: https://github.com/AdventureNLearn/WNTRs-Globe
-- Live site: https://adventurenlearn.github.io/WNTRs-Globe/
+- Live site: https://wntrsglobe.grok.me/

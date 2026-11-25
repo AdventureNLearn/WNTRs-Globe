@@ -11,7 +11,7 @@ import { parseCsv } from "./import-cases.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path.resolve(__dirname, "..");
-const DEFAULT_CSV = "/workspace/research/wntrs-globe-200-20261118/cases.csv";
+const DEFAULT_CSV = process.env.WNTR_CASES_CSV || path.join(APP_ROOT, "research-pack", "cases.csv");
 const SEED = 20261118;
 
 function mulberry32(seed) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Import official-record cases from Scout's CSV pack into data/cases.json.
+ * Import official-record cases from a local CSV pack into data/cases.json.
  * Rerun when a new pack or cases-part2.csv arrives.
  *
  * Usage:
@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path.resolve(__dirname, "..");
-const DEFAULT_PACK = "/workspace/research/wntrs-globe-200-20261118";
+const DEFAULT_PACK = process.env.WNTR_PACK_DIR || path.join(APP_ROOT, "research-pack");
 const UA = "WNTRs-Globe/1.0 (https://github.com/AdventureNLearn/WNTRs-Globe; official-record case import)";
 const NOMINATIM = "https://nominatim.openstreetmap.org/search";
 const MIN_INTERVAL_MS = 1100;
@@ -990,7 +990,7 @@ async function main() {
     data_status: "OFFICIAL_RECORD_CASES",
     note: "Official-record cases from the 18 November 2026 source pack. Event coordinates are drawn only when a primary record or official gazetteer printed them. Named-site outlines come from OpenStreetMap and are not event fixes. Cases with an [UNKNOWN] location or date are kept in the Not on the map feed. The app does not add precision the sources do not give.",
     source_pack: `cases.csv (${rows.length} rows), compiled 18 November 2026, America/New_York. See NOTES.md in the pack.`,
-    source_files: files,
+    source_files: ["research notes (not published)"],
     updated_et: nowEtStamp(),
     import_counts: counts,
     cases
